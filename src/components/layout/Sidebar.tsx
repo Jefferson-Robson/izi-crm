@@ -3,6 +3,7 @@
 import { Home, LayoutDashboard, Settings, UserPlus, Users } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { tenantConfig } from "@/lib/config";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 
@@ -23,9 +24,13 @@ export function Sidebar() {
   return (
     <aside className="w-64 bg-[#0f0f0f] border-r border-neutral-800/50 flex flex-col h-full shrink-0">
       <div className="h-16 flex items-center px-6 border-b border-neutral-800/50">
-        <h1 className="text-xl font-bold tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-indigo-500">
-          IZI CRM
-        </h1>
+        {tenantConfig.theme.logoUrl ? (
+          <img src={tenantConfig.theme.logoUrl} alt={tenantConfig.appName} className="max-h-8 object-contain" />
+        ) : (
+          <h1 className="text-xl font-bold tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-indigo-500">
+            {tenantConfig.appName}
+          </h1>
+        )}
       </div>
 
       <div className="flex-1 p-4 space-y-1">

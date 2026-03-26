@@ -6,6 +6,7 @@ import { auth, db } from "@/lib/firebase";
 import { updateProfile, signOut } from "firebase/auth";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { useRouter } from "next/navigation";
+import { tenantConfig } from "@/lib/config";
 
 export default function ConfigsPage() {
   const [displayName, setDisplayName] = useState("");
@@ -210,7 +211,7 @@ export default function ConfigsPage() {
                     value={displayName}
                     onChange={(e) => setDisplayName(e.target.value)}
                     className="w-full bg-[#1a1a1a] border border-neutral-800 text-sm rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:ring-1 focus:ring-amber-500 focus:border-amber-500 transition-all text-neutral-100 placeholder:text-neutral-600"
-                    placeholder="Ex: IZI Imóveis"
+                    placeholder="Ex: Sua Imobiliária"
                   />
                 </div>
               </div>
@@ -339,7 +340,7 @@ export default function ConfigsPage() {
                <div>
                  <h3 className="font-bold text-white text-lg flex items-center gap-2">
                     <CreditCard className="w-5 h-5 text-amber-500" />
-                    Assinatura IZI CRM
+                    Assinatura {tenantConfig.appName}
                  </h3>
                  <p className="text-xs text-neutral-500 mt-1">Gerencie seu plano e recursos premium.</p>
                </div>

@@ -5,6 +5,7 @@ import { Plus, Search, MapPin, BedDouble, Bath, Square, Home as HomeIcon, Buildi
 import { db, auth } from "@/lib/firebase";
 import { collection, query, where, onSnapshot, addDoc } from "firebase/firestore";
 import Image from "next/image";
+import { tenantConfig } from "@/lib/config";
 
 type PropertyType = "apartment" | "house" | "studio" | "commercial";
 
@@ -161,7 +162,7 @@ export default function CaptacoesPage() {
           </div>
           <h3 className="text-lg font-bold text-neutral-200 mb-1">Nenhum imóvel listado</h3>
           <p className="text-neutral-500 text-sm max-w-sm">
-            Adicione sua primeira captação para começar a divulgá-la no IZI CRM.
+            Adicione sua primeira captação para começar a divulgá-la no {tenantConfig.appName}.
           </p>
         </div>
       ) : (

@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import { tenantConfig } from "@/lib/config";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 export const metadata: Metadata = {
-  title: "IZI CRM | O Padrão Ouro em SaaS Imobiliário",
+  title: `${tenantConfig.appName} | O Padrão Ouro em SaaS Imobiliário`,
   description: "Faça login para gerenciar sua imobiliária",
 };
 

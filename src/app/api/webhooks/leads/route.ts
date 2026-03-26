@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase-admin";
 import { resend } from "@/lib/resend";
+import { tenantConfig } from "@/lib/config";
 
 export async function POST(req: Request) {
   try {
@@ -54,12 +55,12 @@ export async function POST(req: Request) {
         const agencyEmail = agencyData.email || "test@example.com";
         
         await resend.emails.send({
-          from: 'IZI CRM <onboarding@resend.dev>',
+          from: `${tenantConfig.appName} <${tenantConfig.supportEmail}>`,
           to: [agencyEmail],
           subject: '🚀 Nova Captação Recebida!',
           html: `
             <h1>Novo Lead Capturado</h1>
-            <p>Você acabou de receber um novo lead no seu funil do IZI CRM.</p>
+            <p>Você acabou de receber um novo lead no seu funil do ${tenantConfig.appName}.</p>
             <ul>
               <li><strong>Nome:</strong> ${payload.name}</li>
               <li><strong>Telefone:</strong> ${payload.phone}</li>
