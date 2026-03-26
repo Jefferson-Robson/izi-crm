@@ -4,8 +4,9 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { Topbar } from "@/components/layout/Topbar";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { auth } from "@/lib/firebase";
+import { auth, db } from "@/lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore";
 
 export default function DashboardLayout({
   children,
@@ -16,11 +17,31 @@ export default function DashboardLayout({
   const router = useRouter();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (!user) {
         // Usuário não está logado, expulsa pra tela de login
         router.push("/login");
       } else {
+        // Verificar status da assinatura
+        try {
+          const docRef = doc(db, "agencies", user.uid);
+          const docSnap = await getDoc(docRef);
+          if (docSnap.exists()) {
+            const data = docSnap.data();
+            const status = data.stripeSubscriptionStatus;
+            
+            // Se estiver inadimplente, redireciona para a tela de plano
+            if (status && ['past_due', 'unpaid'].includes(status)) {
+               if (window.location.pathname !== '/configs') {
+                 router.push('/configs?error=payment_required');
+                 return;
+               }
+            }
+          }
+        } catch (error) {
+          console.error("Erro ao verificar assinatura:", error);
+        }
+
         // Logado, permite o render
         setLoading(false);
       }

@@ -24,6 +24,16 @@ export default function LoginPage() {
         await signInWithEmailAndPassword(auth, email, password);
       } else {
         await createUserWithEmailAndPassword(auth, email, password);
+        // Disparar e-mail de Boas-vindas
+        try {
+          await fetch("/api/emails/welcome", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email })
+          });
+        } catch (mailError) {
+          console.error("Erro ao enviar e-mail de boas-vindas:", mailError);
+        }
       }
       router.push("/");
     } catch (err: any) {

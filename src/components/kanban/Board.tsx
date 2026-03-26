@@ -3,13 +3,13 @@
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { MessageCircle, Facebook, Video, Globe, MapPin, DollarSign, GripVertical, Plus, TrendingUp, Sparkles } from "lucide-react";
+import { MessageCircle, Facebook, Video, Globe, MapPin, DollarSign, GripVertical, Plus, TrendingUp, Sparkles, Calendar } from "lucide-react";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { NewLeadModal } from "./NewLeadModal";
 import { AiMatchModal } from "./AiMatchModal";
 import { db, auth } from "@/lib/firebase";
-import { collection, query, where, onSnapshot, doc, updateDoc, addDoc } from "firebase/firestore";
+import { collection, query, where, onSnapshot, doc, updateDoc, addDoc, getDoc } from "firebase/firestore";
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -26,6 +26,7 @@ interface Lead {
   value: number;
   status: LeadStatus;
   createdAt: Date;
+  phone?: string;
 }
 
 const mockLeads: Lead[] = [
@@ -55,10 +56,18 @@ export function KanbanBoard() {
   const [draggedLeadId, setDraggedLeadId] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [aiMatchTarget, setAiMatchTarget] = useState<Lead | null>(null);
+  const [calendlyLink, setCalendlyLink] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     if (!auth.currentUser) return;
+
+    // Carrega o perfil da agência para pegar o link de agendamento
+    getDoc(doc(db, "agencies", auth.currentUser.uid)).then((docSnap) => {
+      if (docSnap.exists()) {
+        setCalendlyLink(docSnap.data().calendlyLink || null);
+      }
+    }).catch(console.error);
     
     // Filtra Leads APENAS da agência locada atualmente (SaaS Multi-Tenant)
     const q = query(
@@ -227,13 +236,39 @@ export function KanbanBoard() {
 
                     <div className="text-[10px] text-neutral-500 pt-3 border-t border-neutral-800/50 flex justify-between items-center">
                       <span>Ad. {format(new Date(lead.createdAt), "dd MMM", { locale: ptBR })}</span>
-                      <button 
-                        onClick={() => setAiMatchTarget(lead)}
-                        className="flex items-center gap-1.5 text-amber-400 hover:text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 px-2 py-1 rounded transition-colors"
-                      >
-                        <Sparkles className="w-3 h-3" />
-                        Match IA
-                      </button>
+                      <div className="flex gap-1.5">
+                        {lead.phone && (
+                          <a 
+                            href={`https://wa.me/${lead.phone.replace(/\D/g, '')}?text=Ol%C3%A1%20${encodeURIComponent(lead.name.split(' ')[0])},%20tudo%20bem%3F`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title="Chamar no WhatsApp"
+                            className="flex items-center gap-1.5 text-emerald-400 hover:text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 px-2 py-1 rounded transition-colors"
+                          >
+                            <MessageCircle className="w-3 h-3" />
+                            Whats
+                          </a>
+                        )}
+                        {calendlyLink && (
+                          <a 
+                            href={calendlyLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title="Agendar Reunião via Calendly"
+                            className="flex items-center gap-1.5 text-blue-400 hover:text-blue-300 bg-blue-500/10 hover:bg-blue-500/20 px-2 py-1 rounded transition-colors"
+                          >
+                            <Calendar className="w-3 h-3" />
+                            Agendar
+                          </a>
+                        )}
+                        <button 
+                          onClick={() => setAiMatchTarget(lead)}
+                          className="flex items-center gap-1.5 text-amber-400 hover:text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 px-2 py-1 rounded transition-colors"
+                        >
+                          <Sparkles className="w-3 h-3" />
+                          Match
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}
