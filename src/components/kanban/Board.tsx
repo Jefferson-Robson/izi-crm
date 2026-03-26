@@ -29,6 +29,14 @@ interface Lead {
   phone?: string;
 }
 
+function formatPhoneForWa(phone: string | undefined) {
+  if (!phone) return "";
+  const cleaned = phone.replace(/\D/g, "");
+  // Assume DDI 55 (Brasil) se o número vier no padrão nacional (XX) 9XXXX-XXXX
+  if (cleaned.length === 10 || cleaned.length === 11) return `55${cleaned}`;
+  return cleaned;
+}
+
 const mockLeads: Lead[] = [
   { id: "1", name: "Lucas Mello", origin: "whatsapp", property: "Apt 2Qtos - Vila Clê", value: 3500, status: "nova", createdAt: new Date() },
   { id: "2", name: "Mariana Souza", origin: "tiktok", property: "Casa Cond. Alphaville", value: 1250000, status: "contato", createdAt: new Date(Date.now() - 86400000) },
@@ -222,7 +230,7 @@ export function KanbanBoard() {
                       <div className="flex gap-1.5">
                         {lead.phone && (
                           <a 
-                            href={`https://wa.me/${lead.phone.replace(/\D/g, '')}?text=Ol%C3%A1%20${encodeURIComponent(lead.name.split(' ')[0])},%20tudo%20bem%3F`}
+                            href={`https://wa.me/${formatPhoneForWa(lead.phone)}?text=Ol%C3%A1%20${encodeURIComponent(lead.name.split(' ')[0])},%20tudo%20bem%3F`}
                             target="_blank"
                             rel="noopener noreferrer"
                             title="Chamar no WhatsApp"

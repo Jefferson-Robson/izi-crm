@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { User, Mail, Link as LinkIcon, Camera, Loader2, LogOut, Save, Shield, CreditCard, Calendar } from "lucide-react";
+import { User, Mail, Link as LinkIcon, Camera, Loader2, LogOut, Save, Shield, CreditCard, Calendar, MessageCircle } from "lucide-react";
 import { auth, db } from "@/lib/firebase";
 import { updateProfile, signOut } from "firebase/auth";
 import { doc, getDoc, setDoc } from "firebase/firestore";
@@ -14,6 +14,9 @@ export default function ConfigsPage() {
   const [creci, setCreci] = useState("");
   const [calendlyLink, setCalendlyLink] = useState("");
   const [webhookToken, setWebhookToken] = useState("");
+  const [whatsappApiUrl, setWhatsappApiUrl] = useState("");
+  const [whatsappToken, setWhatsappToken] = useState("");
+  const [whatsappMessage, setWhatsappMessage] = useState("Olá {nome}, recebemos seu contato referente ao imóvel {imovel}. Sou o corretor responsável.");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [plan, setPlan] = useState("free");
@@ -38,6 +41,9 @@ export default function ConfigsPage() {
           setCalendlyLink(data.calendlyLink || "");
           setWebhookToken(data.webhookToken || "");
           setPlan(data.plan || "free");
+          setWhatsappApiUrl(data.whatsappApiUrl || "");
+          setWhatsappToken(data.whatsappToken || "");
+          if (data.whatsappMessage) setWhatsappMessage(data.whatsappMessage);
         }
       } catch (error) {
         console.error("Erro ao carregar perfil extra:", error);
@@ -65,6 +71,9 @@ export default function ConfigsPage() {
       await setDoc(doc(db, "agencies", user.uid), {
         creci,
         calendlyLink,
+        whatsappApiUrl,
+        whatsappToken,
+        whatsappMessage,
         updatedAt: new Date().toISOString()
       }, { merge: true });
 
@@ -330,6 +339,71 @@ export default function ConfigsPage() {
                    </button>
                  </div>
                  <p className="text-[10px] text-amber-500">Aviso: Gerar um novo token invalidará o anterior.</p>
+               </div>
+            </div>
+          </div>
+
+          {/* WhatsApp Automation Card */}
+          <div className="bg-[#141414] border border-neutral-800/80 rounded-2xl overflow-hidden flex flex-col">
+            <div className="px-6 py-5 border-b border-neutral-800/80 bg-[#0a0a0a] flex items-center justify-between">
+               <div>
+                 <h3 className="font-bold text-white text-lg flex items-center gap-2">
+                    <MessageCircle className="w-5 h-5 text-emerald-500" />
+                    Automação de WhatsApp
+                 </h3>
+                 <p className="text-xs text-neutral-500 mt-1">Conecte sua API (Z-API, Evolution, Chatpro) para disparo imediato na captação.</p>
+               </div>
+            </div>
+            <div className="p-6 space-y-6">
+               <div className="space-y-2.5">
+                 <label className="text-xs font-semibold text-neutral-400 uppercase tracking-wider">URL do Endpoint (POST) de Disparo</label>
+                 <div className="relative">
+                   <LinkIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500" />
+                   <input 
+                     type="url" 
+                     value={whatsappApiUrl}
+                     onChange={(e) => setWhatsappApiUrl(e.target.value)}
+                     placeholder="Ex: https://api.z-api.io/instances/SUA_INSTANCIA/token/SEU_TOKEN/send-messages"
+                     className="w-full bg-[#1a1a1a] border border-neutral-800 text-sm rounded-xl pl-10 pr-4 py-3 text-neutral-100 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                   />
+                 </div>
+               </div>
+               
+               <div className="space-y-2.5">
+                 <label className="text-xs font-semibold text-neutral-400 uppercase tracking-wider">Bearer Token / Authorization Header (Opcional)</label>
+                 <div className="relative">
+                   <Shield className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500" />
+                   <input 
+                     type="text" 
+                     value={whatsappToken}
+                     onChange={(e) => setWhatsappToken(e.target.value)}
+                     placeholder="Bearer xyz..."
+                     className="w-full bg-[#1a1a1a] border border-neutral-800 text-sm rounded-xl pl-10 pr-4 py-3 text-neutral-100 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                   />
+                 </div>
+               </div>
+
+               <div className="space-y-2.5">
+                 <label className="text-xs font-semibold text-neutral-400 uppercase tracking-wider">Mensagem de Boas-Vindas</label>
+                 <textarea 
+                   value={whatsappMessage}
+                   onChange={(e) => setWhatsappMessage(e.target.value)}
+                   rows={3}
+                   className="w-full bg-[#1a1a1a] border border-neutral-800 text-sm rounded-xl px-4 py-3 text-neutral-100 focus:outline-none focus:ring-1 focus:ring-emerald-500 resize-none"
+                   placeholder="Olá {nome}! Tudo bem?..."
+                 />
+                 <p className="text-[10px] text-emerald-500/80">Variáveis mapeadas: {'{nome}'}, {'{imovel}'}</p>
+               </div>
+               
+               <div className="flex justify-end pt-2">
+                 <button 
+                   type="button"
+                   onClick={handleSave}
+                   disabled={saving}
+                   className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl text-sm font-bold transition-all shadow-[0_0_15px_-3px_rgba(16,185,129,0.4)] disabled:opacity-50"
+                 >
+                   Salvar WhatsApp API
+                 </button>
                </div>
             </div>
           </div>

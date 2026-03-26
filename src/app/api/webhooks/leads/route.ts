@@ -48,10 +48,59 @@ export async function POST(req: Request) {
 
     const docRef = await adminDb.collection("leads").add(payload);
     
-    // Dispara alerta por e-mail se Resend estiver configurado
+    const agencyData = agencyDoc.data();
+
+    // ----------------------------------------------------
+    // DISPARO AUTOMATIZADO DE WHATSAPP (Agnóstico)
+    // ----------------------------------------------------
+    const { whatsappApiUrl, whatsappToken, whatsappMessage } = agencyData;
+    if (whatsappApiUrl && payload.phone) {
+      try {
+        const msgTemplate = whatsappMessage || "Olá {nome}, recebemos seu contato referente ao imóvel {imovel}. Sou o corretor responsável.";
+        const firstName = payload.name.split(' ')[0];
+        
+        // Parse de variáveis
+        const textMessage = msgTemplate
+          .replace(/{nome}/g, firstName)
+          .replace(/{imovel}/g, payload.property)
+          .replace(/\\n/g, '\n');
+
+        // Formatação simples do telefone para padrão nacional ou internacional
+        const phoneDigits = payload.phone.replace(/\D/g, '');
+        const waPhone = (phoneDigits.length === 10 || phoneDigits.length === 11) ? `55${phoneDigits}` : phoneDigits;
+
+        const headers: Record<string, string> = {
+          "Content-Type": "application/json",
+        };
+        
+        if (whatsappToken) {
+          headers["Authorization"] = whatsappToken.toLowerCase().startsWith("bearer") 
+            ? whatsappToken 
+            : `Bearer ${whatsappToken}`;
+        }
+
+        // Payload abrangente que tenta cobrir os padrões mais usados em APIs Não Oficiais (Z-API / Evolution / Chatwoot)
+        await fetch(whatsappApiUrl, {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            number: waPhone,
+            phone: waPhone,
+            message: textMessage,
+            text: textMessage
+          })
+        });
+      } catch (err) {
+         // Silencia o erro para não quebrar a persistência e notificação por e-mail central do lead
+         console.error("Erro secundário: Falha no pass-through do disparo do WhatsApp:", err);
+      }
+    }
+
+    // ----------------------------------------------------
+    // DISPARO DE COMUNICADO PARA O CORRETOR VIA E-MAIL
+    // ----------------------------------------------------
     if (resend) {
       try {
-        const agencyData = agencyDoc.data();
         const agencyEmail = agencyData.email || "test@example.com";
         
         await resend.emails.send({
