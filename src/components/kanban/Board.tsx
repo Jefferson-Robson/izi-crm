@@ -6,10 +6,10 @@ import { ptBR } from "date-fns/locale";
 import { MessageCircle, Facebook, Video, Globe, MapPin, DollarSign, GripVertical, Plus, TrendingUp, Sparkles, Calendar } from "lucide-react";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
-import { NewLeadModal } from "./NewLeadModal";
+
 import { AiMatchModal } from "./AiMatchModal";
 import { db, auth } from "@/lib/firebase";
-import { collection, query, where, onSnapshot, doc, updateDoc, addDoc, getDoc } from "firebase/firestore";
+import { collection, query, where, onSnapshot, doc, updateDoc, getDoc } from "firebase/firestore";
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -54,7 +54,6 @@ const originIcons: Record<LeadOrigin, React.ReactNode> = {
 export function KanbanBoard() {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [draggedLeadId, setDraggedLeadId] = useState<string | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [aiMatchTarget, setAiMatchTarget] = useState<Lead | null>(null);
   const [calendlyLink, setCalendlyLink] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -124,22 +123,6 @@ export function KanbanBoard() {
     setDraggedLeadId(null);
   };
 
-  const handleAddLead = async (data: any) => {
-    if (!auth.currentUser) return;
-    try {
-      await addDoc(collection(db, "leads"), {
-        ...data,
-        status: "nova",
-        agencyId: auth.currentUser.uid,
-        createdAt: new Date().toISOString(),
-      });
-      setIsModalOpen(false);
-    } catch (error) {
-      console.error("Erro ao salvar lead:", error);
-      alert("Operação bloqueada: Lembre-se de liberar regra de Escrita no FIRESTORE RULES na sua conta Firebase.");
-    }
-  };
-
   // Metrics Calculation
   const totalValue = leads.filter(l => l.status === "fechado").reduce((acc, curr) => acc + curr.value, 0);
   const activeLeads = leads.filter(l => l.status !== "fechado").length;
@@ -164,7 +147,7 @@ export function KanbanBoard() {
         </div>
 
         <button 
-          onClick={() => setIsModalOpen(true)}
+          onClick={() => window.dispatchEvent(new CustomEvent('open-new-lead'))}
           className="flex items-center gap-2 bg-amber-600 hover:bg-amber-700 text-white px-5 py-2.5 rounded-xl transition-all font-medium shadow-[0_0_15px_-3px_rgba(245,158,11,0.4)] hover:shadow-[0_0_25px_-3px_rgba(245,158,11,0.6)] hover:-translate-y-0.5"
         >
           <Plus className="w-5 h-5" />
@@ -283,12 +266,6 @@ export function KanbanBoard() {
           );
         })}
       </div>
-
-      <NewLeadModal 
-        isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
-        onSubmit={handleAddLead} 
-      />
 
       <AiMatchModal 
         lead={aiMatchTarget}

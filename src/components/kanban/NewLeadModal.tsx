@@ -1,28 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { X, MessageCircle, Facebook, Video, Globe } from "lucide-react";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
+import { auth, db } from "@/lib/firebase";
+import { collection, addDoc } from "firebase/firestore";
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
 type LeadOrigin = "whatsapp" | "meta" | "tiktok" | "website";
-
-interface LeadData {
-  name: string;
-  property: string;
-  value: number;
-  origin: LeadOrigin;
-}
-
-interface NewLeadModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onSubmit: (data: LeadData) => void;
-}
 
 const origins: { id: LeadOrigin; label: string; icon: React.ReactNode; activeClass: string }[] = [
   { id: "whatsapp", label: "WhatsApp", icon: <MessageCircle className="w-5 h-5 mb-2" />, activeClass: "border-emerald-500 bg-emerald-500/10 text-emerald-400" },
@@ -31,30 +20,57 @@ const origins: { id: LeadOrigin; label: string; icon: React.ReactNode; activeCla
   { id: "website", label: "Site/Outros", icon: <Globe className="w-5 h-5 mb-2" />, activeClass: "border-neutral-500 bg-neutral-500/10 text-neutral-300" },
 ];
 
-export function NewLeadModal({ isOpen, onClose, onSubmit }: NewLeadModalProps) {
+export function NewLeadModal() {
+  const [isOpen, setIsOpen] = useState(false);
   const [origin, setOrigin] = useState<LeadOrigin>("whatsapp");
   const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
   const [property, setProperty] = useState("");
   const [value, setValue] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    const handleOpen = () => setIsOpen(true);
+    window.addEventListener("open-new-lead", handleOpen);
+    return () => window.removeEventListener("open-new-lead", handleOpen);
+  }, []);
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name || !property) return;
-    
-    onSubmit({
-      name,
-      property,
-      value: Number(value.replace(/\D/g, "")) || 0,
-      origin,
-    });
-    
-    // Reset
+  const handleClose = () => {
+    setIsOpen(false);
+    // Reset form on close
     setName("");
+    setPhone("");
     setProperty("");
     setValue("");
     setOrigin("whatsapp");
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name || !property || !phone || !auth.currentUser) return;
+    
+    setIsSubmitting(true);
+    try {
+      await addDoc(collection(db, "leads"), {
+        name,
+        phone,
+        property,
+        value: Number(value.replace(/\D/g, "")) || 0,
+        origin,
+        status: "nova",
+        agencyId: auth.currentUser.uid,
+        createdAt: new Date().toISOString(),
+      });
+      
+      handleClose();
+    } catch (error) {
+      console.error("Erro ao salvar lead:", error);
+      alert("Erro ao salvar o lead. Verifique as permissões ou tente novamente.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -63,7 +79,7 @@ export function NewLeadModal({ isOpen, onClose, onSubmit }: NewLeadModalProps) {
         <div className="flex items-center justify-between p-5 border-b border-neutral-800/50 bg-[#0f0f0f]">
           <h2 className="text-xl font-bold text-neutral-100">Cadastrar Novo Lead</h2>
           <button 
-            onClick={onClose}
+            onClick={handleClose}
             className="p-2 text-neutral-400 hover:text-white hover:bg-neutral-800 rounded-full transition-colors"
           >
             <X className="w-5 h-5" />
@@ -97,17 +113,30 @@ export function NewLeadModal({ isOpen, onClose, onSubmit }: NewLeadModalProps) {
           </div>
 
           <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-neutral-300 mb-1.5">Nome do Lead</label>
-              <input 
-                type="text"
-                autoFocus
-                required
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Ex: João Silva"
-                className="w-full bg-[#0a0a0a] border border-neutral-800 text-sm rounded-lg px-4 py-2.5 focus:outline-none focus:ring-1 focus:ring-amber-500 focus:border-amber-500 transition-all text-neutral-200"
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-neutral-300 mb-1.5">Nome do Lead</label>
+                <input 
+                  type="text"
+                  autoFocus
+                  required
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Ex: João Silva"
+                  className="w-full bg-[#0a0a0a] border border-neutral-800 text-sm rounded-lg px-4 py-2.5 focus:outline-none focus:ring-1 focus:ring-amber-500 focus:border-amber-500 transition-all text-neutral-200"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-neutral-300 mb-1.5">Telefone (WhatsApp)</label>
+                <input 
+                  type="text"
+                  required
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="Ex: (11) 99999-9999"
+                  className="w-full bg-[#0a0a0a] border border-neutral-800 text-sm rounded-lg px-4 py-2.5 focus:outline-none focus:ring-1 focus:ring-amber-500 focus:border-amber-500 transition-all text-neutral-200"
+                />
+              </div>
             </div>
             
             <div className="grid grid-cols-2 gap-4">
@@ -124,7 +153,7 @@ export function NewLeadModal({ isOpen, onClose, onSubmit }: NewLeadModalProps) {
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-neutral-300 mb-1.5">Valor (R$)</label>
+                <label className="block text-sm font-medium text-neutral-300 mb-1.5">Valor Opcional (R$)</label>
                 <input 
                   type="text"
                   value={value}
@@ -139,16 +168,23 @@ export function NewLeadModal({ isOpen, onClose, onSubmit }: NewLeadModalProps) {
           <div className="pt-2 flex justify-end gap-3">
             <button 
               type="button"
-              onClick={onClose}
+              onClick={handleClose}
+              disabled={isSubmitting}
               className="px-5 py-2.5 text-sm font-medium text-neutral-400 hover:text-white transition-colors"
             >
               Cancelar
             </button>
             <button 
               type="submit"
-              className="px-6 py-2.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg transition-colors text-sm font-medium shadow-[0_0_15px_-3px_rgba(245,158,11,0.3)] hover:shadow-[0_0_20px_-3px_rgba(245,158,11,0.5)]"
+              disabled={isSubmitting}
+              className="px-6 py-2.5 bg-amber-600 hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg transition-colors text-sm font-medium shadow-[0_0_15px_-3px_rgba(245,158,11,0.3)] hover:shadow-[0_0_20px_-3px_rgba(245,158,11,0.5)] flex items-center gap-2"
             >
-              Salvar Lead
+              {isSubmitting ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                  Salvando...
+                </>
+              ) : "Salvar Lead"}
             </button>
           </div>
         </form>

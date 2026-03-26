@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { auth, db } from "@/lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
+import { NewLeadModal } from "@/components/kanban/NewLeadModal";
 
 export default function DashboardLayout({
   children,
@@ -68,6 +69,7 @@ export default function DashboardLayout({
           {children}
         </div>
       </main>
+      <NewLeadModal />
     </>
   );
 }
